@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../config/database');
 const pay2sService = require('../services/pay2sService');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
@@ -18,13 +19,13 @@ router.get('/plans', async (req, res) => {
             ORDER BY price ASC
         `);
         
-        res.json({
+        return ResponseHandler.success(res, {
             plans: result.rows
         });
         
     } catch (error) {
         console.error('Get plans error:', error);
-        res.status(500).json({ error: 'Failed to get plans' });
+        return ResponseHandler.error(res, 'Failed to get plans', 500);
     }
 });
 
@@ -36,7 +37,7 @@ router.post('/create-order', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
         
         const { plan_id } = req.body;
@@ -49,7 +50,7 @@ router.post('/create-order', [
         );
         
         if (planResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Plan not found' });
+            return ResponseHandler.error(res, 'Plan not found', 404);
         }
         
         const plan = planResult.rows[0];
@@ -66,8 +67,7 @@ router.post('/create-order', [
         });
         
         if (!paymentResult.success) {
-            return res.status(500).json({ 
-                error: 'Failed to create payment order',
+            return ResponseHandler.error(res, 'Failed to create payment order', 500, {
                 details: paymentResult.error
             });
         }
@@ -85,8 +85,7 @@ router.post('/create-order', [
             paymentResult.transaction_id
         ]);
         
-        res.json({
-            success: true,
+        return ResponseHandler.success(res, {
             payment_url: paymentResult.payment_url,
             order_id: orderId,
             plan: {
@@ -94,11 +93,11 @@ router.post('/create-order', [
                 price: plan.price,
                 duration_days: plan.duration_days
             }
-        });
+        }, 'Payment order created successfully');
         
     } catch (error) {
         console.error('Create payment order error:', error);
-        res.status(500).json({ error: 'Failed to create payment order' });
+        return ResponseHandler.error(res, 'Failed to create payment order', 500);
     }
 });
 
@@ -110,7 +109,7 @@ router.post('/callback', async (req, res) => {
         // Verify signature
         if (!pay2sService.verifyCallback(req.body)) {
             console.error('Invalid callback signature');
-            return res.status(400).json({ error: 'Invalid signature' });
+            return ResponseHandler.error(res, 'Invalid signature', 400);
         }
         
         const {
@@ -138,11 +137,11 @@ router.post('/callback', async (req, res) => {
         }
         
         // Respond to Pay2S
-        res.json({ success: true });
+        return ResponseHandler.success(res, { success: true });
         
     } catch (error) {
         console.error('Pay2S callback error:', error);
-        res.status(500).json({ error: 'Callback processing failed' });
+        return ResponseHandler.error(res, 'Callback processing failed', 500);
     }
 });
 
@@ -214,13 +213,13 @@ router.get('/history', authenticateToken, async (req, res) => {
             ORDER BY po.created_at DESC
         `, [req.user.id]);
         
-        res.json({
+        return ResponseHandler.success(res, {
             payments: result.rows
         });
         
     } catch (error) {
         console.error('Get payment history error:', error);
-        res.status(500).json({ error: 'Failed to get payment history' });
+        return ResponseHandler.error(res, 'Failed to get payment history', 500);
     }
 });
 
@@ -242,7 +241,7 @@ router.get('/admin/all', [authenticateToken, requireRole(['admin'])], async (req
         const countResult = await pool.query('SELECT COUNT(*) FROM payment_orders');
         const totalCount = parseInt(countResult.rows[0].count);
         
-        res.json({
+        return ResponseHandler.success(res, {
             payments: result.rows,
             pagination: {
                 current_page: parseInt(page),
@@ -254,7 +253,7 @@ router.get('/admin/all', [authenticateToken, requireRole(['admin'])], async (req
         
     } catch (error) {
         console.error('Admin get payments error:', error);
-        res.status(500).json({ error: 'Failed to get payments' });
+        return ResponseHandler.error(res, 'Failed to get payments', 500);
     }
 });
 

@@ -2,10 +2,11 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
-// Get current user profile (already in auth.js as /me, but duplicate here for users endpoint)
+// Get current user profile (already in auth.js as /me, nhưng duplicate ở đây cho users endpoint)
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
         const userResult = await pool.query(`
@@ -21,11 +22,11 @@ router.get('/profile', authenticateToken, async (req, res) => {
         `, [req.user.id]);
 
         if (userResult.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return ResponseHandler.error(res, 'User not found', 404);
         }
 
         const user = userResult.rows[0];
-        res.json({
+        return ResponseHandler.success(res, {
             user: {
                 id: user.id,
                 email: user.email,
@@ -44,7 +45,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get user profile error:', error);
-        res.status(500).json({ error: 'Failed to get user profile' });
+        return ResponseHandler.error(res, 'Failed to get user profile', 500);
     }
 });
 
@@ -56,7 +57,7 @@ router.put('/profile', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { email } = req.body;
@@ -70,7 +71,7 @@ router.put('/profile', [
             );
 
             if (existingUser.rows.length > 0) {
-                return res.status(409).json({ error: 'Email already in use' });
+                return ResponseHandler.error(res, 'Email already in use', 409);
             }
         }
 
@@ -81,14 +82,13 @@ router.put('/profile', [
             RETURNING id, email, role, status, created_at
         `, [email, userId]);
 
-        res.json({
-            message: 'Profile updated successfully',
+        return ResponseHandler.success(res, {
             user: result.rows[0]
-        });
+        }, 'Profile updated successfully');
 
     } catch (error) {
         console.error('Update profile error:', error);
-        res.status(500).json({ error: 'Failed to update profile' });
+        return ResponseHandler.error(res, 'Failed to update profile', 500);
     }
 });
 
@@ -106,11 +106,11 @@ router.get('/subscription', authenticateToken, async (req, res) => {
         `, [req.user.id]);
 
         if (result.rows.length === 0) {
-            return res.json({ subscription: null });
+            return ResponseHandler.success(res, { subscription: null });
         }
 
         const subscription = result.rows[0];
-        res.json({
+        return ResponseHandler.success(res, {
             subscription: {
                 id: subscription.id,
                 plan: {
@@ -131,7 +131,7 @@ router.get('/subscription', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get subscription error:', error);
-        res.status(500).json({ error: 'Failed to get subscription details' });
+        return ResponseHandler.error(res, 'Failed to get subscription details', 500);
     }
 });
 
@@ -182,7 +182,7 @@ router.get('/usage-stats', authenticateToken, async (req, res) => {
                 AND DATE(al.request_time) = CURRENT_DATE
         `, [req.user.id]);
 
-        res.json({
+        return ResponseHandler.success(res, {
             today: todayUsage.rows[0] || { requests_today: 0, api_keys_used_today: 0 },
             daily_stats: dailyStats.rows,
             top_endpoints: endpointStats.rows
@@ -190,7 +190,7 @@ router.get('/usage-stats', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get usage stats error:', error);
-        res.status(500).json({ error: 'Failed to get usage statistics' });
+        return ResponseHandler.error(res, 'Failed to get usage statistics', 500);
     }
 });
 
@@ -201,7 +201,7 @@ router.delete('/account', authenticateToken, async (req, res) => {
 
         // Don't allow admin to delete themselves
         if (req.user.role === 'admin') {
-            return res.status(403).json({ error: 'Admin accounts cannot be self-deleted' });
+            return ResponseHandler.error(res, 'Admin accounts cannot be self-deleted', 403);
         }
 
         const client = await pool.connect();
@@ -218,7 +218,7 @@ router.delete('/account', authenticateToken, async (req, res) => {
             
             await client.query('COMMIT');
             
-            res.json({ message: 'Account deleted successfully' });
+            return ResponseHandler.success(res, null, 'Account deleted successfully');
             
         } catch (error) {
             await client.query('ROLLBACK');
@@ -229,7 +229,7 @@ router.delete('/account', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Delete account error:', error);
-        res.status(500).json({ error: 'Failed to delete account' });
+        return ResponseHandler.error(res, 'Failed to delete account', 500);
     }
 });
 

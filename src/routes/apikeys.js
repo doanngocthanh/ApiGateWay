@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../config/database');
 const { generateApiKey } = require('../utils/generateApiKey');
 const { authenticateToken } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
             ORDER BY created_at DESC
         `, [req.user.id]);
 
-        res.json({
+        return ResponseHandler.success(res, {
             api_keys: result.rows.map(key => ({
                 id: key.id,
                 key: key.key_value,
@@ -29,7 +30,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get API keys error:', error);
-        res.status(500).json({ error: 'Failed to retrieve API keys' });
+        return ResponseHandler.error(res, 'Failed to retrieve API keys', 500);
     }
 });
 
@@ -41,7 +42,7 @@ router.post('/', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { name } = req.body;
@@ -59,15 +60,15 @@ router.post('/', [
         `, [userId]);
 
         if (subscriptionResult.rows.length === 0) {
-            return res.status(403).json({ error: 'No active subscription found' });
+            return ResponseHandler.error(res, 'No active subscription found', 403);
         }
 
         const { api_key_limit, current_keys } = subscriptionResult.rows[0];
 
         if (current_keys >= api_key_limit) {
-            return res.status(403).json({ 
-                error: `API key limit reached. Maximum ${api_key_limit} keys allowed for your plan.`
-            });
+            return ResponseHandler.error(res, 
+                `API key limit reached. Maximum ${api_key_limit} keys allowed for your plan.`, 403
+            );
         }
 
         // Generate new API key
@@ -82,8 +83,7 @@ router.post('/', [
 
         const newKey = result.rows[0];
 
-        res.status(201).json({
-            message: 'API key created successfully',
+        return ResponseHandler.success(res, {
             api_key: {
                 id: newKey.id,
                 key: newKey.key_value,
@@ -91,11 +91,11 @@ router.post('/', [
                 status: newKey.status,
                 created_at: newKey.created_at
             }
-        });
+        }, 'API key created successfully', 201);
 
     } catch (error) {
         console.error('Create API key error:', error);
-        res.status(500).json({ error: 'Failed to create API key' });
+        return ResponseHandler.error(res, 'Failed to create API key', 500);
     }
 });
 
@@ -107,7 +107,7 @@ router.put('/:keyId', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { keyId } = req.params;
@@ -122,17 +122,16 @@ router.put('/:keyId', [
         `, [name, keyId, userId]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'API key not found' });
+            return ResponseHandler.error(res, 'API key not found', 404);
         }
 
-        res.json({
-            message: 'API key updated successfully',
+        return ResponseHandler.success(res, {
             api_key: result.rows[0]
-        });
+        }, 'API key updated successfully');
 
     } catch (error) {
         console.error('Update API key error:', error);
-        res.status(500).json({ error: 'Failed to update API key' });
+        return ResponseHandler.error(res, 'Failed to update API key', 500);
     }
 });
 
@@ -150,14 +149,14 @@ router.delete('/:keyId', authenticateToken, async (req, res) => {
         `, [keyId, userId]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'API key not found' });
+            return ResponseHandler.error(res, 'API key not found', 404);
         }
 
-        res.json({ message: 'API key revoked successfully' });
+        return ResponseHandler.success(res, null, 'API key revoked successfully');
 
     } catch (error) {
         console.error('Revoke API key error:', error);
-        res.status(500).json({ error: 'Failed to revoke API key' });
+        return ResponseHandler.error(res, 'Failed to revoke API key', 500);
     }
 });
 
@@ -174,7 +173,7 @@ router.get('/:keyId/stats', authenticateToken, async (req, res) => {
         );
 
         if (keyResult.rows.length === 0) {
-            return res.status(404).json({ error: 'API key not found' });
+            return ResponseHandler.error(res, 'API key not found', 404);
         }
 
         // Get usage stats
@@ -200,14 +199,14 @@ router.get('/:keyId/stats', authenticateToken, async (req, res) => {
                 AND DATE(request_time) = CURRENT_DATE
         `, [keyId]);
 
-        res.json({
+        return ResponseHandler.success(res, {
             daily_stats: stats.rows,
             today: todayStats.rows[0] || { today_requests: 0, today_unique_ips: 0 }
         });
 
     } catch (error) {
         console.error('Get API key stats error:', error);
-        res.status(500).json({ error: 'Failed to get API key statistics' });
+        return ResponseHandler.error(res, 'Failed to get API key statistics', 500);
     }
 });
 

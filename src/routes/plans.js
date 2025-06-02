@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
@@ -25,13 +26,11 @@ router.get('/', async (req, res) => {
             ]
         }));
 
-        res.json({
-            plans: plans
-        });
+        return ResponseHandler.success(res, { plans });
 
     } catch (error) {
         console.error('Get plans error:', error);
-        res.status(500).json({ error: 'Failed to get plans' });
+        return ResponseHandler.error(res, 'Failed to get plans', 500);
     }
 });
 
@@ -49,12 +48,12 @@ router.get('/:planId', async (req, res) => {
         `, [planId]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Plan not found' });
+            return ResponseHandler.error(res, 'Plan not found', 404);
         }
 
         const plan = result.rows[0];
         
-        res.json({
+        return ResponseHandler.success(res, {
             plan: {
                 id: plan.id,
                 name: plan.name,
@@ -77,7 +76,7 @@ router.get('/:planId', async (req, res) => {
 
     } catch (error) {
         console.error('Get plan details error:', error);
-        res.status(500).json({ error: 'Failed to get plan details' });
+        return ResponseHandler.error(res, 'Failed to get plan details', 500);
     }
 });
 
@@ -122,11 +121,11 @@ router.get('/compare/all', async (req, res) => {
             ]
         };
 
-        res.json(comparison);
+        return ResponseHandler.success(res, comparison);
 
     } catch (error) {
         console.error('Compare plans error:', error);
-        res.status(500).json({ error: 'Failed to compare plans' });
+        return ResponseHandler.error(res, 'Failed to compare plans', 500);
     }
 });
 
@@ -157,13 +156,11 @@ router.get('/user/history', authenticateToken, async (req, res) => {
             is_current: sub.status === 'active'
         }));
 
-        res.json({
-            subscriptions: subscriptions
-        });
+        return ResponseHandler.success(res, { subscriptions });
 
     } catch (error) {
         console.error('Get user plan history error:', error);
-        res.status(500).json({ error: 'Failed to get plan history' });
+        return ResponseHandler.error(res, 'Failed to get plan history', 500);
     }
 });
 
@@ -194,7 +191,7 @@ router.get('/user/upgrade-options', authenticateToken, async (req, res) => {
 
         if (!currentPlan) {
             // User has no active subscription, can choose any plan
-            return res.json({
+            return ResponseHandler.success(res, {
                 current_plan: null,
                 available_upgrades: allPlans,
                 available_downgrades: [],
@@ -206,7 +203,7 @@ router.get('/user/upgrade-options', authenticateToken, async (req, res) => {
         const upgrades = allPlans.filter(plan => plan.price > currentPlan.price);
         const downgrades = allPlans.filter(plan => plan.price < currentPlan.price);
 
-        res.json({
+        return ResponseHandler.success(res, {
             current_plan: {
                 id: currentPlan.plan_id,
                 name: currentPlan.name,
@@ -220,7 +217,7 @@ router.get('/user/upgrade-options', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get upgrade options error:', error);
-        res.status(500).json({ error: 'Failed to get upgrade options' });
+        return ResponseHandler.error(res, 'Failed to get upgrade options', 500);
     }
 });
 

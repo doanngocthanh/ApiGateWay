@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const pool = require('../config/database');
 const quotaService = require('../services/quotaService');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/dashboard', async (req, res) => {
             getTopUsers()
         ]);
         
-        res.json({
+        return ResponseHandler.success(res, {
             users: userStats,
             subscriptions: subscriptionStats,
             revenue: revenueStats,
@@ -38,7 +39,7 @@ router.get('/dashboard', async (req, res) => {
         
     } catch (error) {
         console.error('Admin dashboard error:', error);
-        res.status(500).json({ error: 'Failed to get dashboard data' });
+        return ResponseHandler.error(res, 'Failed to get dashboard data', 500);
     }
 });
 
@@ -87,7 +88,7 @@ router.get('/users', async (req, res) => {
         const countResult = await pool.query(countQuery, params.slice(0, paramCount));
         const totalCount = parseInt(countResult.rows[0].count);
         
-        res.json({
+        return ResponseHandler.success(res, {
             users: result.rows,
             pagination: {
                 current_page: parseInt(page),
@@ -99,7 +100,7 @@ router.get('/users', async (req, res) => {
         
     } catch (error) {
         console.error('Admin get users error:', error);
-        res.status(500).json({ error: 'Failed to get users' });
+        return ResponseHandler.error(res, 'Failed to get users', 500);
     }
 });
 
@@ -110,7 +111,7 @@ router.put('/users/:userId/status', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
         
         const { userId } = req.params;
@@ -124,7 +125,7 @@ router.put('/users/:userId/status', [
         `, [status, userId]);
         
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return ResponseHandler.error(res, 'User not found', 404);
         }
         
         // If user is suspended/banned, deactivate their API keys
@@ -136,14 +137,13 @@ router.put('/users/:userId/status', [
             `, [userId]);
         }
         
-        res.json({
-            message: 'User status updated successfully',
+        return ResponseHandler.success(res, {
             user: result.rows[0]
-        });
+        }, 'User status updated successfully');
         
     } catch (error) {
         console.error('Update user status error:', error);
-        res.status(500).json({ error: 'Failed to update user status' });
+        return ResponseHandler.error(res, 'Failed to update user status', 500);
     }
 });
 
@@ -162,7 +162,7 @@ router.get('/users/:userId', async (req, res) => {
         `, [userId]);
         
         if (userResult.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return ResponseHandler.error(res, 'User not found', 404);
         }
         
         // Get API keys
@@ -183,7 +183,7 @@ router.get('/users/:userId', async (req, res) => {
             ORDER BY date DESC
         `, [userId]);
         
-        res.json({
+        return ResponseHandler.success(res, {
             user: userResult.rows[0],
             api_keys: apiKeysResult.rows,
             usage_stats: usageResult.rows
@@ -191,7 +191,7 @@ router.get('/users/:userId', async (req, res) => {
         
     } catch (error) {
         console.error('Get user details error:', error);
-        res.status(500).json({ error: 'Failed to get user details' });
+        return ResponseHandler.error(res, 'Failed to get user details', 500);
     }
 });
 
@@ -206,11 +206,11 @@ router.get('/plans', async (req, res) => {
             ORDER BY p.price ASC
         `);
         
-        res.json({ plans: result.rows });
+        return ResponseHandler.success(res, { plans: result.rows });
         
     } catch (error) {
         console.error('Get plans error:', error);
-        res.status(500).json({ error: 'Failed to get plans' });
+        return ResponseHandler.error(res, 'Failed to get plans', 500);
     }
 });
 
@@ -225,7 +225,7 @@ router.post('/plans', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
         
         const { name, description, price, request_limit_per_day, api_key_limit, duration_days } = req.body;
@@ -236,14 +236,13 @@ router.post('/plans', [
             RETURNING *
         `, [name, description, price, request_limit_per_day, api_key_limit, duration_days]);
         
-        res.status(201).json({
-            message: 'Plan created successfully',
+        return ResponseHandler.success(res, {
             plan: result.rows[0]
-        });
+        }, 'Plan created successfully', 201);
         
     } catch (error) {
         console.error('Create plan error:', error);
-        res.status(500).json({ error: 'Failed to create plan' });
+        return ResponseHandler.error(res, 'Failed to create plan', 500);
     }
 });
 
@@ -258,7 +257,7 @@ router.put('/plans/:planId', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
         
         const { planId } = req.params;
@@ -275,17 +274,16 @@ router.put('/plans/:planId', [
         `, values);
         
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Plan not found' });
+            return ResponseHandler.error(res, 'Plan not found', 404);
         }
         
-        res.json({
-            message: 'Plan updated successfully',
+        return ResponseHandler.success(res, {
             plan: result.rows[0]
-        });
+        }, 'Plan updated successfully');
         
     } catch (error) {
         console.error('Update plan error:', error);
-        res.status(500).json({ error: 'Failed to update plan' });
+        return ResponseHandler.error(res, 'Failed to update plan', 500);
     }
 });
 
@@ -308,11 +306,11 @@ router.get('/analytics/usage', async (req, res) => {
             ORDER BY date DESC
         `);
         
-        res.json({ analytics: result.rows });
+        return ResponseHandler.success(res, { analytics: result.rows });
         
     } catch (error) {
         console.error('Get usage analytics error:', error);
-        res.status(500).json({ error: 'Failed to get usage analytics' });
+        return ResponseHandler.error(res, 'Failed to get usage analytics', 500);
     }
 });
 

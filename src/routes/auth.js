@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/hashPassword');
 const { generateToken } = require('../config/jwt');
 const { authenticateToken } = require('../middleware/auth');
+const ResponseHandler = require('../utils/responseHandler');
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.post('/register', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { email, password, role = 'customer' } = req.body;
@@ -28,7 +29,7 @@ router.post('/register', [
         );
 
         if (existingUser.rows.length > 0) {
-            return res.status(409).json({ error: 'Email already registered' });
+            return ResponseHandler.error(res, 'Email already registered', 409);
         }
 
         // Hash password
@@ -49,8 +50,7 @@ router.post('/register', [
             role: user.role
         });
 
-        res.status(201).json({
-            message: 'User created successfully',
+        return ResponseHandler.success(res, {
             user: {
                 id: user.id,
                 email: user.email,
@@ -58,11 +58,11 @@ router.post('/register', [
                 created_at: user.created_at
             },
             token
-        });
+        }, 'User created successfully', 201);
 
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Failed to create user' });
+        return ResponseHandler.error(res, 'Failed to create user', 500);
     }
 });
 
@@ -74,7 +74,7 @@ router.post('/login', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { email, password } = req.body;
@@ -86,19 +86,19 @@ router.post('/login', [
         );
 
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return ResponseHandler.error(res, 'Invalid credentials', 401);
         }
 
         const user = userResult.rows[0];
 
         if (user.status !== 'active') {
-            return res.status(401).json({ error: 'Account deactivated' });
+            return ResponseHandler.error(res, 'Account deactivated', 401);
         }
 
         // Verify password
         const isValidPassword = await comparePassword(password, user.password_hash);
         if (!isValidPassword) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return ResponseHandler.error(res, 'Invalid credentials', 401);
         }
 
         // Generate JWT token
@@ -108,19 +108,18 @@ router.post('/login', [
             role: user.role
         });
 
-        res.json({
-            message: 'Login successful',
+        return ResponseHandler.success(res, {
             user: {
                 id: user.id,
                 email: user.email,
                 role: user.role
             },
             token
-        });
+        }, 'Login successful');
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Login failed' });
+        return ResponseHandler.error(res, 'Login failed', 500);
     }
 });
 
@@ -137,11 +136,11 @@ router.get('/me', authenticateToken, async (req, res) => {
         `, [req.user.id]);
 
         if (userResult.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return ResponseHandler.error(res, 'User not found', 404);
         }
 
         const user = userResult.rows[0];
-        res.json({
+        return ResponseHandler.success(res, {
             user: {
                 id: user.id,
                 email: user.email,
@@ -158,7 +157,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Get profile error:', error);
-        res.status(500).json({ error: 'Failed to get user profile' });
+        return ResponseHandler.error(res, 'Failed to get user profile', 500);
     }
 });
 
@@ -171,7 +170,7 @@ router.post('/change-password', [
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            return ResponseHandler.error(res, errors.array(), 400);
         }
 
         const { currentPassword, newPassword } = req.body;
@@ -184,11 +183,11 @@ router.post('/change-password', [
         );
 
         const user = userResult.rows[0];
-        
+
         // Verify current password
         const isValidPassword = await comparePassword(currentPassword, user.password_hash);
         if (!isValidPassword) {
-            return res.status(401).json({ error: 'Current password is incorrect' });
+            return ResponseHandler.error(res, 'Current password is incorrect', 401);
         }
 
         // Hash new password
@@ -200,11 +199,11 @@ router.post('/change-password', [
             [newPasswordHash, userId]
         );
 
-        res.json({ message: 'Password changed successfully' });
+        return ResponseHandler.success(res, null, 'Password changed successfully');
 
     } catch (error) {
         console.error('Change password error:', error);
-        res.status(500).json({ error: 'Failed to change password' });
+        return ResponseHandler.error(res, 'Failed to change password', 500);
     }
 });
 

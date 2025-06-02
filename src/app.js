@@ -14,6 +14,8 @@ const paymentRoutes = require('./routes/payment');
 const { globalLimiter, getQuotaStats } = require('./middleware/rateLimit');
 const { validateApiKey } = require('./middleware/apiKeyValidator');
 const { quotaMiddleware } = require('./middleware/rateLimit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
 
 const app = express();
 
@@ -53,7 +55,8 @@ app.get('/api/protected/test', validateApiKey, quotaMiddleware, (req, res) => {
         remaining_quota: res.get('X-RateLimit-Remaining')
     });
 });
-
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Quota stats endpoint
 app.get('/api/quota/stats', validateApiKey, getQuotaStats);
 
