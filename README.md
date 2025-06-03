@@ -34,7 +34,7 @@ npm run dev
 ```bash
 psql -h localhost -U postgres -d api_management -f migrations/init.sql
 ```
-
+ 
 [![License](https://img.shields.io/github/license/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/blob/main/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/commits/main)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/doanngocthanh/ApiGateWay/ci.yml?branch=main&style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/actions)
@@ -42,3 +42,34 @@ psql -h localhost -U postgres -d api_management -f migrations/init.sql
 [![Top Language](https://img.shields.io/github/languages/top/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay)
 [![Contributors](https://img.shields.io/github/contributors/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/graphs/contributors)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/pulls)
+## 📷 Project Images
+
+Below are some images from the `images` folder to help you understand the project structure and features:
+
+### Client Screenshots
+
+- **Dashboard:**  
+  ![Dashboard](images/user/dashboard.png)
+- **API Key:**  
+  ![Apikey](images/user/apikey.png)
+- **Profile:**  
+  ![Profile](images/user/profile.png)
+- **Plans:**  
+  ![Plans](images/user/plans.png)
+- **Payment History:**  
+  ![Payment History](images/user/payment-history.png)
+
+### Admin Screenshots
+
+- **Dashboard:**  
+  ![Dashboard](images/admin/dashboad.png)
+- **Destinations:**  
+  ![Destinations](images/admin/destinations.png)
+- **Analytics:**  
+  ![Analytics](images/admin/analytics.png)
+- **Payments:**  
+  ![Payments](images/admin/payments.png)
+- **Users:**  
+  ![Users](images/admin/users.png)
+ 
+> _Images are located in the `/images` directory._
