@@ -22,6 +22,7 @@ const swaggerSpec = require('./docs/swagger');
 
 // Import and start health check service
 const proxyHealthService = require('./services/proxyHealthService');
+const path = require('path');
 
 const app = express();
 
@@ -34,6 +35,20 @@ app.use(globalLimiter);
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the React frontend app
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// Serve React's index.html for the root path "/"
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+});
+
+// Catch-all handler to serve React's index.html for any frontend route
+app.get(/^\/(?!api\/|proxy\/|api-docs|health|static\/|favicon\.ico).*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+});
+
 
 // Health check
 app.get('/health', (req, res) => {
