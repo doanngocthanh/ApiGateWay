@@ -1,5 +1,8 @@
 # ApiGateWay
-
+[![ApiGateWay Live](https://img.shields.io/badge/Live-Demo-green?style=flat-square&logo=render&link=https://apigateway-1k6n.onrender.com)](https://apigateway-1k6n.onrender.com)
+[![GitHub Repo stars](https://img.shields.io/github/stars/doanngocthanh/ApiGateWay?style=social)](https://github.com/doanngocthanh/ApiGateWay)
+[![GitHub issues](https://img.shields.io/github/issues/doanngocthanh/ApiGateWay)](https://github.com/doanngocthanh/ApiGateWay/issues)
+[![GitHub forks](https://img.shields.io/github/forks/doanngocthanh/ApiGateWay?style=social)](https://github.com/doanngocthanh/ApiGateWay/network/members)
 ## 📋 Quick Start Instructions
 
 1. **Initialize project:**

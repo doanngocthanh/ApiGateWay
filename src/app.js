@@ -48,8 +48,6 @@ app.get('/', (req, res) => {
 app.get(/^\/(?!api\/|proxy\/|api-docs|health|static\/|favicon\.ico).*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
 });
-
-
 // Health check
 app.get('/health', (req, res) => {
     res.json({ 
