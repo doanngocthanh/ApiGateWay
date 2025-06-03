@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AdminToggle } from './AdminToggle';
 import { buildApiUrl, API_CONFIG } from '@/config/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 interface AnalyticsData {
   date: string;
@@ -61,40 +62,29 @@ export const Dashboard = () => {
           console.log('Analytics response:', analyticsData);
           
           if (analyticsData.success && analyticsData.data?.analytics) {
-            const analytics: AnalyticsData[] = analyticsData.data.analytics;
-            
-            // Convert analytics data to usage stats format
-            const todayData = analytics[analytics.length - 1];
+            // Map analytics -> daily_stats
+            const daily_stats = analyticsData.data.analytics.map((item: any) => ({
+              date: item.date?.slice(0, 10) || '',
+              requests: Number(item.total_requests) || 0,
+              unique_ips: Number(item.unique_users) || 0,
+              api_keys_used: Number(item.unique_api_keys) || 0,
+              success_rate: Number(item.success_rate) || 0,
+            }));
+
             setUsageStats({
               today: {
-                requests_today: parseInt(todayData?.total_requests || '0'),
-                api_keys_used_today: parseInt(todayData?.unique_api_keys || '0')
+                requests_today: daily_stats.length > 0 ? daily_stats[daily_stats.length - 1].requests : 0,
+                api_keys_used_today: daily_stats.length > 0 ? daily_stats[daily_stats.length - 1].api_keys_used : 0,
               },
-              daily_stats: analytics.map(item => ({
-                date: new Date(item.date).toISOString().split('T')[0],
-                requests: parseInt(item.total_requests),
-                unique_ips: parseInt(item.unique_users),
-                api_keys_used: parseInt(item.unique_api_keys)
-              })),
-              top_endpoints: [
-                { endpoint: '/proxy/ocr', method: 'POST', requests: parseInt(todayData?.total_requests || '0'), success_rate: parseFloat(todayData?.success_rate || '100') },
-              ]
+              daily_stats,
+              top_endpoints: [],
             });
           }
         } else {
           // Fallback to mock data
-          setUsageStats({
-            today: {
-              requests_today: 6,
-              api_keys_used_today: 1
-            },
-            daily_stats: [
-              { date: '2025-06-03', requests: 6, unique_ips: 1, api_keys_used: 1 },
-            ],
-            top_endpoints: [
-              { endpoint: '/proxy/ocr', method: 'POST', requests: 6, success_rate: 100 },
-            ]
-          });
+          console.log('Analytics endpoint failed, using mock data');
+          toast.error('Không thể tải dữ liệu thống kê, đang sử dụng dữ liệu mẫu');
+          
         }
       } else {
         // Regular user - try usage stats endpoint
@@ -108,7 +98,26 @@ export const Dashboard = () => {
         if (response.ok) {
           const data = await response.json();
           console.log('Usage stats response:', data);
-          setUsageStats(data.data);
+
+          // Chuyển đổi kiểu dữ liệu về number
+          setUsageStats({
+            today: {
+              requests_today: Number(data.data.today?.requests_today) || 0,
+              api_keys_used_today: Number(data.data.today?.api_keys_used_today) || 0,
+            },
+            daily_stats: (data.data.daily_stats || []).map((item: any) => ({
+              date: item.date,
+              requests: Number(item.requests) || 0,
+              unique_ips: Number(item.unique_ips) || 0,
+              api_keys_used: Number(item.api_keys_used) || 0,
+            })),
+            top_endpoints: (data.data.top_endpoints || []).map((item: any) => ({
+              endpoint: item.endpoint,
+              method: item.method,
+              requests: Number(item.requests) || 0,
+              success_rate: Number(item.success_rate) || 0,
+            })),
+          });
         } else {
           console.log('Usage stats endpoint not available, using mock data');
           // Mock data for demonstration

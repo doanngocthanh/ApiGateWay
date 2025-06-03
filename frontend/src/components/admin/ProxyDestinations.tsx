@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -51,6 +50,7 @@ export const ProxyDestinations = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [healthChecking, setHealthChecking] = useState<string | null>(null);
+  const [healthCheckDetails, setHealthCheckDetails] = useState<Record<number, any>>({});
   
   const [newDestination, setNewDestination] = useState({
     name: '',
@@ -225,22 +225,27 @@ export const ProxyDestinations = () => {
 
       if (response.ok) {
         const data = await response.json();
-        
-        // Update destination health status
+        const health = data.data?.health_check;
+        // Lưu chi tiết health check
+        setHealthCheckDetails(prev => ({
+          ...prev,
+          [destinationId]: health,
+        }));
+
         setDestinations(destinations.map(dest => 
           dest.id === destinationId 
             ? { 
                 ...dest, 
-                is_healthy: data.health_check?.healthy || false,
-                last_health_check: new Date().toISOString() 
+                is_healthy: health?.is_healthy || false,
+                last_health_check: health?.checked_at || new Date().toISOString()
               }
             : dest
         ));
         
         toast({
           title: 'Health check hoàn thành',
-          description: `Destination ${data.health_check?.healthy ? 'healthy' : 'unhealthy'}`,
-          variant: data.health_check?.healthy ? 'default' : 'destructive',
+          description: `Destination ${health?.is_healthy ? 'healthy' : 'unhealthy'}`,
+          variant: health?.is_healthy ? 'default' : 'destructive',
         });
       } else {
         toast({
@@ -555,6 +560,15 @@ export const ProxyDestinations = () => {
                     <p className="text-sm text-gray-600">
                       {new Date(destination.last_health_check).toLocaleString('vi-VN')}
                     </p>
+                  </div>
+                )}
+
+                {healthCheckDetails[destination.id] && (
+                  <div className="bg-gray-50 rounded p-3 mt-2 border text-xs">
+                    <div><b>Status Code:</b> {healthCheckDetails[destination.id].status_code ?? '-'}</div>
+                    <div><b>Response Time:</b> {healthCheckDetails[destination.id].response_time_ms ?? '-'} ms</div>
+                    <div><b>Error:</b> {healthCheckDetails[destination.id].error_message ?? 'None'}</div>
+                    <div><b>Checked At:</b> {healthCheckDetails[destination.id].checked_at ? new Date(healthCheckDetails[destination.id].checked_at).toLocaleString('vi-VN') : '-'}</div>
                   </div>
                 )}
               </CardContent>

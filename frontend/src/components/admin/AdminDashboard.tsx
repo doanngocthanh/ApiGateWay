@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { buildApiUrl, API_CONFIG } from '@/config/api';
 
 interface AdminStats {
   totalUsers: number;
@@ -27,7 +28,7 @@ export const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = 'https://supreme-goldfish-5xg6vg7xx5xhv5xp-3000.app.github.dev';
+  const API_BASE = API_CONFIG.BASE_URL;
 
   useEffect(() => {
     fetchAdminData();

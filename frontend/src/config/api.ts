@@ -11,7 +11,8 @@ export const API_CONFIG = {
     USERS: {
       PROFILE: '/api/users/profile',
       USAGE: '/api/users/usage-stats',
-      SUBSCRIPTION: '/api/users/subscription'
+      SUBSCRIPTION: '/api/users/subscription',
+      ANALYTICS: '/api/users/usage-stats'
     },
     KEYS: {
       LIST: '/api/keys',

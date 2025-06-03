@@ -3,6 +3,7 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/doanngocthanh/ApiGateWay?style=social)](https://github.com/doanngocthanh/ApiGateWay)
 [![GitHub issues](https://img.shields.io/github/issues/doanngocthanh/ApiGateWay)](https://github.com/doanngocthanh/ApiGateWay/issues)
 [![GitHub forks](https://img.shields.io/github/forks/doanngocthanh/ApiGateWay?style=social)](https://github.com/doanngocthanh/ApiGateWay/network/members)
+
 ## 📋 Quick Start Instructions
 
 1. **Initialize project:**
@@ -32,3 +33,12 @@ npm run dev
 4. **Initialize database:**
 ```bash
 psql -h localhost -U postgres -d api_management -f migrations/init.sql
+```
+
+[![License](https://img.shields.io/github/license/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/blob/main/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/commits/main)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/doanngocthanh/ApiGateWay/ci.yml?branch=main&style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/actions)
+[![Code Size](https://img.shields.io/github/languages/code-size/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay)
+[![Top Language](https://img.shields.io/github/languages/top/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay)
+[![Contributors](https://img.shields.io/github/contributors/doanngocthanh/ApiGateWay?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/doanngocthanh/ApiGateWay/pulls)

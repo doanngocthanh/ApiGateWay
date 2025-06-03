@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { buildApiUrl, API_CONFIG } from '@/config/api';
 
 interface User {
   id: number;
@@ -35,52 +35,35 @@ export const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // Thêm state cho phân trang
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(20); // hoặc cho phép chọn
+  const [pagination, setPagination] = useState<{current_page: number, total_pages: number, total_count: number, per_page: number}>({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 20,
+  });
 
-  const fetchUsers = async () => {
+  const fetchUsers = React.useCallback(async () => {
     try {
       setLoading(true);
-      // Mock data since endpoint might not exist yet
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setUsers([
-        {
-          id: 1,
-          email: 'dntdoanngocthanh@gmail.com',
-          role: 'admin',
-          status: 'active',
-          created_at: '2025-06-02T09:37:01.172Z',
-          api_key_count: 3,
-          subscription: {
-            plan_name: 'Free',
-            end_date: '2025-07-02T00:00:00.000Z'
-          },
-          total_requests: 1250
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString(),
+      });
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/admin/getListUsers/all?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        {
-          id: 2,
-          email: 'user@example.com',
-          role: 'customer',
-          status: 'active',
-          created_at: '2025-06-01T10:00:00.000Z',
-          api_key_count: 2,
-          subscription: {
-            plan_name: 'Pro',
-            end_date: '2025-07-01T00:00:00.000Z'
-          },
-          total_requests: 8965
-        },
-        {
-          id: 3,
-          email: 'inactive@example.com',
-          role: 'customer',
-          status: 'inactive',
-          created_at: '2025-05-15T08:30:00.000Z',
-          api_key_count: 1,
-          total_requests: 45
-        }
-      ]);
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data.data?.users || []);
+      setPagination(data.data?.pagination || pagination);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -91,7 +74,11 @@ export const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, page, perPage]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -117,6 +104,7 @@ export const UserManagement = () => {
     }
   };
 
+  // Lọc chỉ trên client cho search/filter, hoặc có thể gửi lên server nếu backend hỗ trợ
   const filteredUsers = users.filter(user => {
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
@@ -366,6 +354,30 @@ export const UserManagement = () => {
               )}
             </TableBody>
           </Table>
+          {/* Phân trang */}
+          <div className="flex justify-between items-center mt-4">
+            <span>
+              Trang {pagination.current_page} / {pagination.total_pages} ({pagination.total_count} người dùng)
+            </span>
+            <div className="space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.current_page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                Trước
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.current_page >= pagination.total_pages}
+                onClick={() => setPage(page + 1)}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

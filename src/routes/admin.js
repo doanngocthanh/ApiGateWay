@@ -313,6 +313,105 @@ router.get('/analytics/usage', async (req, res) => {
         return ResponseHandler.error(res, 'Failed to get usage analytics', 500);
     }
 });
+//API get all users with pagination
+router.get('/getListUsers/all', async (req, res) => {
+    try {
+        let { page = '1', limit = '50' } = req.query;
+
+        // Convert page and limit to int if possible, otherwise handle 'all'
+        if (typeof limit === 'string' && limit.toLowerCase() === 'all') {
+            limit = 'all';
+        } else if (!isNaN(limit)) {
+            limit = parseInt(limit, 10);
+        } else {
+            limit = 50;
+        }
+
+        if (!isNaN(page)) {
+            page = parseInt(page, 10);
+        } else {
+            page = 1;
+        }
+
+        let offset = 0;
+        let queryText = `
+            SELECT 
+                u.id, 
+                u.email, 
+                u.role, 
+                u.status, 
+                u.created_at,
+                COUNT(ak.id) AS api_key_count,
+                p.name AS plan_name,
+                s.end_date,
+                COALESCE(SUM(al_count.total_requests), 0) AS total_requests
+            FROM users u
+            LEFT JOIN api_keys ak ON u.id = ak.user_id AND ak.status = 'active'
+            LEFT JOIN subscriptions s ON u.id = s.user_id AND s.status = 'active'
+            LEFT JOIN plans p ON s.plan_id = p.id
+            LEFT JOIN (
+                SELECT ak.user_id, COUNT(al.id) AS total_requests
+                FROM api_logs al
+                JOIN api_keys ak ON al.api_key_id = ak.id
+                GROUP BY ak.user_id
+            ) al_count ON u.id = al_count.user_id
+            GROUP BY u.id, p.name, s.end_date
+            ORDER BY u.created_at DESC
+        `;
+        let queryParams = [];
+        let pagination = {};
+        let result;
+        let totalCount;
+
+        if (limit === 'all') {
+            // No pagination, return all users
+            result = await pool.query(queryText);
+            totalCount = result.rows.length;
+            pagination = {
+                current_page: 1,
+                total_pages: 1,
+                total_count: totalCount,
+                per_page: totalCount
+            };
+        } else {
+            offset = (page - 1) * limit;
+            queryText += ' LIMIT $1 OFFSET $2';
+            queryParams = [limit, offset];
+            result = await pool.query(queryText, queryParams);
+
+            // Get total count
+            const countResult = await pool.query('SELECT COUNT(*) FROM users');
+            totalCount = parseInt(countResult.rows[0].count, 10);
+            pagination = {
+                current_page: page,
+                total_pages: Math.ceil(totalCount / limit),
+                total_count: totalCount,
+                per_page: limit
+            };
+        }
+
+        // Map result to match the required structure
+        result.rows.forEach(row => {
+            row.api_key_count = parseInt(row.api_key_count, 10);
+            row.total_requests = parseInt(row.total_requests, 10);
+            row.subscription = {
+                plan_name: row.plan_name,
+                end_date: row.end_date
+            };
+            delete row.plan_name;
+            delete row.end_date;
+        });
+
+        return ResponseHandler.success(res, {
+            users: result.rows,
+            pagination
+        });
+
+    } catch (error) {
+        console.error('Admin get all users error:', error);
+        return ResponseHandler.error(res, 'Failed to get all users', 500);
+    }
+});
 
 // Helper functions
 async function getUserStats() {
